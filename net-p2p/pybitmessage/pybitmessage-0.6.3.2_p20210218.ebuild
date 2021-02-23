@@ -11,7 +11,7 @@ inherit distutils2 gnome2-utils versionator systemd
 MY_PN="PyBitmessage"
 
 DESCRIPTION="Reference client for Bitmessage: a P2P communications protocol"
-COMMIT="448e9e2f36b8f76673aaa6e6eaaba15735bc2ec4"
+COMMIT="ef849d2dd31167524336575b3e12591149359c70"
 HOMEPAGE="https://bitmessage.org"
 SRC_URI="https://github.com/Bitmessage/${MY_PN}/archive/${COMMIT}.tar.gz
 	-> ${P}.tar.gz"
@@ -21,7 +21,7 @@ LINGUAS=( ar cs da de eo fr it ja nb nl no pl pt ru sk sv zh_cn )
 LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="daemon json libcanberra libressl +msgpack qt5 sound systemd tor ${LINGUAS[@]/#/l10n_}"
+IUSE="daemon desktop json libcanberra libressl +msgpack qt5 sound systemd tor ${LINGUAS[@]/#/l10n_}"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
 DEPEND="${PYTHON_DEPS}"
@@ -32,6 +32,7 @@ RDEPEND="${DEPEND}
 	msgpack? ( dev-python/msgpack-python2 )
 	qt5? ( dev-python/PyQt5-python2[widgets,network] )
 	json? ( dev-python/jsonrpclib-python2 )
+	desktop? ( dev-python/pyxdg-python2 )
 	libcanberra? ( dev-python/pycanberra-python2 )
 	sound? ( || ( media-sound/gst123
 				  media-libs/gst-plugins-base:1.0
@@ -45,7 +46,6 @@ S="${WORKDIR}"/${MY_PN}-${COMMIT}
 PVM=$(get_version_component_range 1-3)
 PATCHES=(
 	"${FILESDIR}"/${PVM}-qt5.patch
-	"${FILESDIR}"/${PVM}-desktop.patch
 )
 
 src_prepare() {
@@ -59,6 +59,7 @@ src_prepare() {
 }
 
 src_install () {
+	python_scriptinto /usr/bin
 	distutils2_src_install
 	dodoc README.md
 	doman man/${PN}.1.gz
