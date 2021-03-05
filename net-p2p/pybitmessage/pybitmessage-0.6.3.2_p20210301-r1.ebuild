@@ -21,7 +21,7 @@ LINGUAS=( ar cs da de eo fr it ja nb nl no pl pt ru sk sv zh_cn )
 LICENSE="MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="daemon desktop json libcanberra libressl +msgpack qt5 sound systemd tor ${LINGUAS[@]/#/l10n_}"
+IUSE="daemon desktop json libcanberra libressl +msgpack qrcode qt5 sound systemd tor ${LINGUAS[@]/#/l10n_}"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 
 DEPEND="${PYTHON_DEPS}"
@@ -34,6 +34,7 @@ RDEPEND="${DEPEND}
 	json? ( dev-python/jsonrpclib-python2 )
 	desktop? ( dev-python/pyxdg-python2 )
 	libcanberra? ( dev-python/pycanberra-python2 )
+	qrcode? ( dev-python/qrcode-python2 )
 	sound? ( || ( media-sound/gst123
 				  media-libs/gst-plugins-base:1.0
 				  media-sound/mpg123
