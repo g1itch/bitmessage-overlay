@@ -1,0 +1,23 @@
+--- a/setup.cfg	2021-03-05 18:03:56.071508651 +0200
++++ b/setup.cfg	2021-03-05 18:04:29.820167917 +0200
+@@ -43,10 +43,6 @@
+ pil = 
+ 	pillow
+ 
+-[options.entry_points]
+-console-scripts = 
+-	qr = qrcode.console_scripts:main
+-
+ [bdist_wheel]
+ universal = 1
+ 
+--- a/setup.py	2021-03-05 18:03:45.518615189 +0200
++++ b/setup.py	2021-03-05 18:04:09.412373960 +0200
+@@ -2,6 +2,4 @@
+ from setuptools import setup
+ 
+ # See setup.cfg for configuration.
+-setup(
+-    data_files=[('share/man/man1', ['doc/qr.1'])],
+-)
++setup()
