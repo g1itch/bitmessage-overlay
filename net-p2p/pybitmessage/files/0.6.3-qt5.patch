@@ -7006,7 +7006,7 @@ index 76dad423..5e096628 100644
 +        self.subject = unicode(subject, 'utf-8', 'replace')
 +        self.body = unicode(body, 'utf-8', 'replace')
 diff --git a/src/namecoin.py b/src/namecoin.py
-index ae2bde79..33319bda 100644
+index cf9081cd..514a46b8 100644
 --- a/src/namecoin.py
 +++ b/src/namecoin.py
 @@ -11,10 +11,10 @@ import socket
@@ -7029,7 +7029,7 @@ index ae2bde79..33319bda 100644
      error = None
  
      def __init__(self, data):
-@@ -47,8 +46,8 @@ class namecoinConnection(object):
+@@ -47,18 +46,20 @@ class namecoinConnection(object):
  
      def __init__(self, options=None):
          """
@@ -7040,7 +7040,31 @@ index ae2bde79..33319bda 100644
          currently entered connection settings in the config dialog without
          actually changing the values (yet).
          """
-@@ -73,7 +72,7 @@ class namecoinConnection(object):
+         if options is None:
+-            self.nmctype = BMConfigParser().get(configSection, "namecoinrpctype")
++            self.nmctype = BMConfigParser().get(
++                configSection, "namecoinrpctype")
+             self.host = BMConfigParser().get(configSection, "namecoinrpchost")
+-            self.port = int(BMConfigParser().get(configSection, "namecoinrpcport"))
++            self.port = int(BMConfigParser().get(
++                configSection, "namecoinrpcport"))
+             self.user = BMConfigParser().get(configSection, "namecoinrpcuser")
+-            self.password = BMConfigParser().get(configSection,
+-                                                 "namecoinrpcpassword")
++            self.password = BMConfigParser().get(
++                configSection, "namecoinrpcpassword")
+         else:
+             self.nmctype = options["type"]
+             self.host = options["host"]
+@@ -66,14 +67,14 @@ class namecoinConnection(object):
+             self.user = options["user"]
+             self.password = options["password"]
+ 
+-        assert self.nmctype == "namecoind" or self.nmctype == "nmcontrol"
++        assert self.nmctype in ("namecoind", "nmcontrol")
+         if self.nmctype == "namecoind":
+             self.con = httplib.HTTPConnection(self.host, self.port, timeout=3)
+ 
      def query(self, string):
          """
          Query for the bitmessage address corresponding to the given identity
@@ -7049,7 +7073,7 @@ index ae2bde79..33319bda 100644
          the result as (Error, Address) pair, where the Error is an error
          message to display or None in case of success.
          """
-@@ -92,9 +91,9 @@ class namecoinConnection(object):
+@@ -92,9 +93,9 @@ class namecoinConnection(object):
                  res = self.callRPC("data", ["getValue", string])
                  res = res["reply"]
                  if not res:
@@ -7062,7 +7086,7 @@ index ae2bde79..33319bda 100644
              else:
                  assert False
          except RPCError as exc:
-@@ -103,17 +102,17 @@ class namecoinConnection(object):
+@@ -103,17 +104,17 @@ class namecoinConnection(object):
                  errmsg = exc.error["message"]
              else:
                  errmsg = exc.error
@@ -7088,7 +7112,7 @@ index ae2bde79..33319bda 100644
  
          try:
              res = json.loads(res)
-@@ -130,14 +129,16 @@ class namecoinConnection(object):
+@@ -130,14 +131,16 @@ class namecoinConnection(object):
          return (
              None, "%s <%s>" % (display_name, res)
          ) if valid else (
@@ -7109,7 +7133,7 @@ index ae2bde79..33319bda 100644
          command, and builds either an error message or a success message with
          some info from it.
          """
-@@ -157,33 +158,36 @@ class namecoinConnection(object):
+@@ -157,33 +160,36 @@ class namecoinConnection(object):
                      versStr = "0.%d.%d" % (v1, v2)
                  else:
                      versStr = "0.%d.%d.%d" % (v1, v2, v3)
@@ -7144,7 +7168,7 @@ index ae2bde79..33319bda 100644
 +                )
  
              else:
--                print "Unsupported Namecoin type"
+-                print ("Unsupported Namecoin type")
 -                sys.exit(1)
 -
 -            return message
@@ -7159,7 +7183,27 @@ index ae2bde79..33319bda 100644
                      "MainWindow", "The connection to namecoin failed.")
              )
  
-@@ -243,7 +247,9 @@ class namecoinConnection(object):
+@@ -227,14 +233,17 @@ class namecoinConnection(object):
+             self.con.putheader("Content-Length", str(len(data)))
+             self.con.putheader("Accept", "application/json")
+             authstr = "%s:%s" % (self.user, self.password)
+-            self.con.putheader("Authorization", "Basic %s" % base64.b64encode(authstr))
++            self.con.putheader(
++                "Authorization", "Basic %s" % base64.b64encode(authstr))
+             self.con.endheaders()
+             self.con.send(data)
+             try:
+                 resp = self.con.getresponse()
+                 result = resp.read()
+                 if resp.status != 200:
+-                    raise Exception("Namecoin returned status %i: %s" % (resp.status, resp.reason))
++                    raise Exception(
++                        "Namecoin returned status %i: %s" %
++                        (resp.status, resp.reason))
+             except:
+                 logger.info("HTTP receive error")
+         except:
+@@ -243,7 +252,9 @@ class namecoinConnection(object):
          return result
  
      def queryServer(self, data):
@@ -7170,11 +7214,345 @@ index ae2bde79..33319bda 100644
  
          try:
              s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+@@ -275,24 +286,24 @@ def lookupNamecoinFolder():
+     """
+ 
+     app = "namecoin"
+-    from os import path, environ
++
+     if sys.platform == "darwin":
+-        if "HOME" in environ:
+-            dataFolder = path.join(os.environ["HOME"],
+-                                   "Library/Application Support/", app) + '/'
+-        else:
+-            print(
++        try:
++            dataFolder = os.path.join(
++                os.getenv("HOME"), "Library/Application Support/", app)
++        except TypeError:  # getenv is None
++            sys.exit(
+                 "Could not find home folder, please report this message"
+                 " and your OS X version to the BitMessage Github."
+-            )
+-            sys.exit()
++            )  # TODO: remove exits from utility modules
+ 
+-    elif "win32" in sys.platform or "win64" in sys.platform:
+-        dataFolder = path.join(environ["APPDATA"], app) + "\\"
+-    else:
+-        dataFolder = path.join(environ["HOME"], ".%s" % app) + "/"
++    dataFolder = (
++        os.path.join(os.getenv("APPDATA"), app)
++        if sys.platform.startswith('win') else
++        os.path.join(os.getenv("HOME"), ".%s" % app)
++    )
+ 
+-    return dataFolder
++    return dataFolder + os.path.sep
+ 
+ 
+ def ensureNamecoinOptions():
+@@ -336,7 +347,9 @@ def ensureNamecoinOptions():
+ 
+         nmc.close()
+     except IOError:
+-        logger.warning("%s unreadable or missing, Namecoin support deactivated", nmcConfig)
++        logger.warning(
++            "%s unreadable or missing, Namecoin support deactivated", nmcConfig
++        )
+     except Exception:
+         logger.warning("Error processing namecoin.conf", exc_info=True)
+ 
+@@ -348,5 +361,5 @@ def ensureNamecoinOptions():
+ 
+     # Set default port now, possibly to found value.
+     if not hasPort:
+-        BMConfigParser().set(configSection, "namecoinrpcport",
+-                             defaults.namecoinDefaultRpcPort)
++        BMConfigParser().set(
++            configSection, "namecoinrpcport", defaults.namecoinDefaultRpcPort)
+diff --git a/src/network/advanceddispatcher.py b/src/network/advanceddispatcher.py
+index 49f0d19d..8df557ad 100644
+--- a/src/network/advanceddispatcher.py
++++ b/src/network/advanceddispatcher.py
+@@ -1,6 +1,7 @@
+ """
+ Improved version of asyncore dispatcher
+ """
++# pylint: disable=attribute-defined-outside-init
+ import socket
+ import threading
+ import time
+@@ -30,7 +31,6 @@ class AdvancedDispatcher(asyncore.dispatcher):
+     def __init__(self, sock=None):
+         if not hasattr(self, '_map'):
+             asyncore.dispatcher.__init__(self, sock)
+-        self.connectedAt = 0
+         self.close_reason = None
+         self.read_buf = bytearray()
+         self.write_buf = bytearray()
+@@ -42,7 +42,6 @@ class AdvancedDispatcher(asyncore.dispatcher):
+         self.readLock = threading.RLock()
+         self.writeLock = threading.RLock()
+         self.processingLock = threading.RLock()
+-        self.uploadChunk = self.downloadChunk = 0
+ 
+     def append_write_buf(self, data):
+         """Append binary data to the end of stream write buffer."""
+diff --git a/src/network/bmproto.py b/src/network/bmproto.py
+index bf2de760..20cbb8e6 100644
+--- a/src/network/bmproto.py
++++ b/src/network/bmproto.py
+@@ -1,7 +1,7 @@
+ """
+-Class BMProto defines bitmessage's network protocol workflow.
++Bitmessage Protocol
+ """
+-
++# pylint: disable=attribute-defined-outside-init, too-few-public-methods
+ import base64
+ import hashlib
+ import logging
+@@ -66,8 +66,6 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+         self.pendingUpload = RandomTrackingDict()
+         # canonical identifier of network group
+         self.network_group = None
+-        # userAgent initialization
+-        self.userAgent = ''
+ 
+     def bm_proto_reset(self):
+         """Reset the bitmessage object parser"""
+@@ -102,7 +100,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+             length=protocol.Header.size, expectBytes=self.payloadLength)
+         return True
+ 
+-    def state_bm_command(self):   # pylint: disable=too-many-branches
++    def state_bm_command(self):     # pylint: disable=too-many-branches
+         """Process incoming command"""
+         self.payload = self.read_buf[:self.payloadLength]
+         if self.checksum != hashlib.sha512(self.payload).digest()[0:4]:
+@@ -187,7 +185,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+ 
+         return Node(services, host, port)
+ 
+-    # pylint: disable=too-many-branches,too-many-statements
++    # pylint: disable=too-many-branches, too-many-statements
+     def decode_payload_content(self, pattern="v"):
+         """
+         Decode the payload depending on pattern:
+@@ -204,6 +202,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+         , = end of array
+         """
+ 
++        # pylint: disable=inconsistent-return-statements
+         def decode_simple(self, char="v"):
+             """Decode the payload using one char pattern"""
+             if char == "v":
+@@ -222,7 +221,6 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                 self.payloadOffset += 8
+                 return struct.unpack(">Q", self.payload[
+                     self.payloadOffset - 8:self.payloadOffset])[0]
+-            return None
+ 
+         size = None
+         isArray = False
+@@ -256,11 +254,10 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                     ])
+                     parserStack[-2][4] = len(parserStack[-2][3])
+                 else:
+-                    j = 0
+-                    for j in range(
+-                            parserStack[-1][4], len(parserStack[-1][3])):
++                    for j in range(parserStack[-1][4], len(parserStack[-1][3])):
+                         if parserStack[-1][3][j] not in "lL0123456789":
+                             break
++                    # pylint: disable=undefined-loop-variable
+                     parserStack.append([
+                         size, size, isArray,
+                         parserStack[-1][3][parserStack[-1][4]:j + 1], 0, []
+@@ -271,8 +268,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+             elif i == "s":
+                 # if parserStack[-2][2]:
+                 #    parserStack[-1][5].append(self.payload[
+-                #        self.payloadOffset:self.payloadOffset
+-                #        + parserStack[-1][0]])
++                #        self.payloadOffset:self.payloadOffset + parserStack[-1][0]])
+                 # else:
+                 parserStack[-1][5] = self.payload[
+                     self.payloadOffset:self.payloadOffset + parserStack[-1][0]]
+@@ -343,10 +339,6 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+         return True
+ 
+     def _command_inv(self, dandelion=False):
+-        """
+-        Common inv announce implementation:
+-        both inv and dinv depending on *dandelion* kwarg
+-        """
+         items = self.decode_payload_content("l32s")
+ 
+         if len(items) > MAX_OBJECT_COUNT:
+@@ -384,11 +376,10 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+             nonce, expiresTime, objectType, version, streamNumber,
+             self.payload, self.payloadOffset)
+ 
+-        payload_len = len(self.payload) - self.payloadOffset
+-        if payload_len > MAX_OBJECT_PAYLOAD_SIZE:
++        if len(self.payload) - self.payloadOffset > MAX_OBJECT_PAYLOAD_SIZE:
+             logger.info(
+-                'The payload length of this object is too large'
+-                ' (%d bytes). Ignoring it.', payload_len)
++                'The payload length of this object is too large (%d bytes).'
++                ' Ignoring it.', len(self.payload) - self.payloadOffset)
+             raise BMProtoExcessiveDataError()
+ 
+         try:
+@@ -443,8 +434,9 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+ 
+     def bm_command_addr(self):
+         """Incoming addresses, process them"""
+-        # not using services
+-        for seenTime, stream, _, ip, port in self._decode_addr():
++        # pylint: disable=redefined-outer-name
++        addresses = self._decode_addr()
++        for seenTime, stream, _, ip, port in addresses:
+             ip = str(ip)
+             if (
+                 stream not in state.streamsInWhichIAmParticipating
+@@ -454,7 +446,8 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                 continue
+             decodedIP = protocol.checkIPAddress(ip)
+             if (
+-                decodedIP and time.time() - seenTime > 0
++                decodedIP
++                and time.time() - seenTime > 0
+                 and seenTime > time.time() - ADDRESS_ALIVE
+                 and port > 0
+             ):
+@@ -482,8 +475,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+         self.append_write_buf(protocol.CreatePacket('pong'))
+         return True
+ 
+-    @staticmethod
+-    def bm_command_pong():
++    def bm_command_pong(self):  # pylint: disable=no-self-use
+         """
+         Incoming pong.
+         Ignore it. PyBitmessage pings connections after about 5 minutes
+@@ -570,8 +562,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                 " compared to mine. Closing connection.", fatal=2))
+             logger.info(
+                 "%s's time is too far in the future (%s seconds)."
+-                " Closing connection to it.",
+-                self.destination, self.timeOffset)
++                " Closing connection to it.", self.destination, self.timeOffset)
+             BMProto.timeOffsetWrongCount += 1
+             return False
+         elif self.timeOffset < -MAX_TIME_OFFSET:
+@@ -579,9 +570,8 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                 errorText="Your time is too far in the past compared to mine."
+                 " Closing connection.", fatal=2))
+             logger.info(
+-                "%s's time is too far in the past"
+-                " (timeOffset %s seconds). Closing connection to it.",
+-                self.destination, self.timeOffset)
++                "%s's time is too far in the past (timeOffset %s seconds)."
++                " Closing connection to it.", self.destination, self.timeOffset)
+             BMProto.timeOffsetWrongCount += 1
+             return False
+         else:
+@@ -594,8 +584,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                 'Closed connection to %s because there is no overlapping'
+                 ' interest in streams.', self.destination)
+             return False
+-        if connectionpool.BMConnectionPool().inboundConnections.get(
+-                self.destination):
++        if self.destination in connectionpool.BMConnectionPool().inboundConnections:
+             try:
+                 if not protocol.checkSocksIP(self.destination.host):
+                     self.append_write_buf(protocol.assembleErrorMessage(
+@@ -605,7 +594,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                         'Closed connection to %s because we are already'
+                         ' connected to that IP.', self.destination)
+                     return False
+-            except Exception:  # TODO: exception types
++            except Exception:
+                 pass
+         if not self.isOutbound:
+             # incoming from a peer we're connected to as outbound,
+@@ -625,7 +614,8 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+                     'Closed connection to %s due to server full'
+                     ' or duplicate inbound/outbound.', self.destination)
+                 return False
+-        if connectionpool.BMConnectionPool().isAlreadyConnected(self.nonce):
++        if connectionpool.BMConnectionPool().isAlreadyConnected(
++                self.nonce):
+             self.append_write_buf(protocol.assembleErrorMessage(
+                 errorText="I'm connected to myself. Closing connection.",
+                 fatal=2))
+@@ -638,7 +628,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+ 
+     @staticmethod
+     def stopDownloadingObject(hashId, forwardAnyway=False):
+-        """Stop downloading object *hashId*"""
++        """Stop downloading an object"""
+         for connection in connectionpool.BMConnectionPool().connections():
+             try:
+                 del connection.objectsNewToMe[hashId]
+@@ -668,8 +658,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
+         except AttributeError:
+             try:
+                 logger.debug(
+-                    '%s:%i: closing',
+-                    self.destination.host, self.destination.port)
++                    '%(host)s:%(port)i: closing', self.destination._asdict())
+             except AttributeError:
+                 logger.debug('Disconnected socket closing')
+         AdvancedDispatcher.handle_close(self)
+diff --git a/src/network/proxy.py b/src/network/proxy.py
+index 3bd3cc66..38676d66 100644
+--- a/src/network/proxy.py
++++ b/src/network/proxy.py
+@@ -61,9 +61,9 @@ class Proxy(AdvancedDispatcher):
+     @proxy.setter
+     def proxy(self, address):
+         """Set proxy IP and port"""
+-        if (not isinstance(address, tuple) or len(address) < 2
+-                or not isinstance(address[0], str)
+-                or not isinstance(address[1], int)):
++        if (not isinstance(address, tuple) or len(address) < 2 or
++                not isinstance(address[0], str) or
++                not isinstance(address[1], int)):
+             raise ValueError
+         self.__class__._proxy = address
+ 
+@@ -113,6 +113,7 @@ class Proxy(AdvancedDispatcher):
+         self.destination = address
+         self.isOutbound = True
+         self.fullyEstablished = False
++        self.connectedAt = 0
+         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+         if BMConfigParser().safeGetBoolean(
+                 "bitmessagesettings", "socksauthentication"):
+@@ -144,5 +145,6 @@ class Proxy(AdvancedDispatcher):
+ 
+     def state_proxy_handshake_done(self):
+         """Handshake is complete at this point"""
++        # pylint: disable=attribute-defined-outside-init
+         self.connectedAt = time.time()
+         return False
 diff --git a/src/network/tcp.py b/src/network/tcp.py
-index 1b30a0a2..fa2149b8 100644
+index ff778378..fa2149b8 100644
 --- a/src/network/tcp.py
 +++ b/src/network/tcp.py
-@@ -139,9 +139,10 @@ class TCPConnection(BMProto, TLSDispatcher):
+@@ -51,6 +51,7 @@ class TCPConnection(BMProto, TLSDispatcher):
+         self.verackSent = False
+         self.streams = [0]
+         self.fullyEstablished = False
++        self.connectedAt = 0
+         self.skipUntil = 0
+         if address is None and sock is not None:
+             self.destination = Peer(*sock.getpeername())
+@@ -138,9 +139,10 @@ class TCPConnection(BMProto, TLSDispatcher):
                  'updateStatusBar',
                  _translate(
                      "MainWindow",
@@ -7187,6 +7565,190 @@ index 1b30a0a2..fa2149b8 100644
  
      def state_connection_fully_established(self):
          """
+diff --git a/src/network/tls.py b/src/network/tls.py
+index a3774b44..e326fa32 100644
+--- a/src/network/tls.py
++++ b/src/network/tls.py
+@@ -16,6 +16,7 @@ logger = logging.getLogger('default')
+ 
+ _DISCONNECTED_SSL = frozenset((ssl.SSL_ERROR_EOF,))
+ 
++# sslProtocolVersion
+ if sys.version_info >= (2, 7, 13):
+     # this means TLSv1 or higher
+     # in the future change to
+@@ -26,16 +27,14 @@ elif sys.version_info >= (2, 7, 9):
+     # SSLv2 and 3 are excluded with an option after context is created
+     sslProtocolVersion = ssl.PROTOCOL_SSLv23
+ else:
+-    # this means TLSv1, there is no way to set "TLSv1 or higher"
+-    # or "TLSv1.2" in < 2.7.9
++    # this means TLSv1, there is no way to set "TLSv1 or higher" or
++    # "TLSv1.2" in < 2.7.9
+     sslProtocolVersion = ssl.PROTOCOL_TLSv1
+ 
+ 
+ # ciphers
+-if (
+-    ssl.OPENSSL_VERSION_NUMBER >= 0x10100000
+-    and not ssl.OPENSSL_VERSION.startswith(b"LibreSSL")
+-):
++if ssl.OPENSSL_VERSION_NUMBER >= 0x10100000 and not \
++        ssl.OPENSSL_VERSION.startswith("LibreSSL"):
+     sslProtocolCiphers = "AECDH-AES256-SHA@SECLEVEL=0"
+ else:
+     sslProtocolCiphers = "AECDH-AES256-SHA"
+@@ -48,10 +47,16 @@ class TLSDispatcher(AdvancedDispatcher):
+     def __init__(self, _=None, sock=None, certfile=None, keyfile=None,
+                  server_side=False, ciphers=sslProtocolCiphers):
+         self.want_read = self.want_write = True
+-        self.certfile = certfile or os.path.join(
+-            paths.codePath(), 'sslkeys', 'cert.pem')
+-        self.keyfile = keyfile or os.path.join(
+-            paths.codePath(), 'sslkeys', 'key.pem')
++        if certfile is None:
++            self.certfile = os.path.join(
++                paths.codePath(), 'sslkeys', 'cert.pem')
++        else:
++            self.certfile = certfile
++        if keyfile is None:
++            self.keyfile = os.path.join(
++                paths.codePath(), 'sslkeys', 'key.pem')
++        else:
++            self.keyfile = keyfile
+         self.server_side = server_side
+         self.ciphers = ciphers
+         self.tlsStarted = False
+@@ -61,6 +66,7 @@ class TLSDispatcher(AdvancedDispatcher):
+ 
+     def state_tls_init(self):
+         """Prepare sockets for TLS handshake"""
++        # pylint: disable=attribute-defined-outside-init
+         self.isSSL = True
+         self.tlsStarted = True
+         # Once the connection has been established,
+@@ -90,6 +96,8 @@ class TLSDispatcher(AdvancedDispatcher):
+         self.want_read = self.want_write = True
+         self.set_state("tls_handshake")
+         return False
++#        if hasattr(self.socket, "context"):
++#            self.socket.context.set_ecdh_curve("secp256k1")
+ 
+     @staticmethod
+     def state_tls_handshake():
+@@ -104,9 +112,9 @@ class TLSDispatcher(AdvancedDispatcher):
+         try:
+             if self.tlsStarted and not self.tlsDone and not self.write_buf:
+                 return self.want_write
++            return AdvancedDispatcher.writable(self)
+         except AttributeError:
+-            pass
+-        return AdvancedDispatcher.writable(self)
++            return AdvancedDispatcher.writable(self)
+ 
+     def readable(self):
+         """Handle readable check for TLS-enabled sockets"""
+@@ -118,14 +126,14 @@ class TLSDispatcher(AdvancedDispatcher):
+                 return self.want_read
+             # prior to TLS handshake,
+             # receiveDataThread should emulate synchronous behaviour
+-            if not self.fullyEstablished and (
++            elif not self.fullyEstablished and (
+                     self.expectBytes == 0 or not self.write_buf_empty()):
+                 return False
++            return AdvancedDispatcher.readable(self)
+         except AttributeError:
+-            pass
+-        return AdvancedDispatcher.readable(self)
++            return AdvancedDispatcher.readable(self)
+ 
+-    def handle_read(self):
++    def handle_read(self):  # pylint: disable=inconsistent-return-statements
+         """
+         Handle reads for sockets during TLS handshake. Requires special
+         treatment as during the handshake, buffers must remain empty
+@@ -134,20 +142,29 @@ class TLSDispatcher(AdvancedDispatcher):
+         try:
+             # wait for write buffer flush
+             if self.tlsStarted and not self.tlsDone and not self.write_buf:
++                # logger.debug(
++                #    "%s:%i TLS handshaking (read)", self.destination.host,
++                #        self.destination.port)
+                 self.tls_handshake()
+             else:
+-                AdvancedDispatcher.handle_read(self)
++                # logger.debug(
++                #    "%s:%i Not TLS handshaking (read)", self.destination.host,
++                #        self.destination.port)
++                return AdvancedDispatcher.handle_read(self)
+         except AttributeError:
+-            AdvancedDispatcher.handle_read(self)
++            return AdvancedDispatcher.handle_read(self)
+         except ssl.SSLError as err:
++            self.close_reason = "SSL Error in handle_read"
+             if err.errno == ssl.SSL_ERROR_WANT_READ:
+                 return
+-            if err.errno not in _DISCONNECTED_SSL:
+-                logger.info("SSL Error: %s", err)
+-            self.close_reason = "SSL Error in handle_read"
++            elif err.errno in _DISCONNECTED_SSL:
++                self.handle_close()
++                return
++            logger.info("SSL Error: %s", err)
+             self.handle_close()
++            return
+ 
+-    def handle_write(self):
++    def handle_write(self):  # pylint: disable=inconsistent-return-statements
+         """
+         Handle writes for sockets during TLS handshake. Requires special
+         treatment as during the handshake, buffers must remain empty
+@@ -156,18 +173,27 @@ class TLSDispatcher(AdvancedDispatcher):
+         try:
+             # wait for write buffer flush
+             if self.tlsStarted and not self.tlsDone and not self.write_buf:
++                # logger.debug(
++                #    "%s:%i TLS handshaking (write)", self.destination.host,
++                #        self.destination.port)
+                 self.tls_handshake()
+             else:
+-                AdvancedDispatcher.handle_write(self)
++                # logger.debug(
++                #    "%s:%i Not TLS handshaking (write)", self.destination.host,
++                #        self.destination.port)
++                return AdvancedDispatcher.handle_write(self)
+         except AttributeError:
+-            AdvancedDispatcher.handle_write(self)
++            return AdvancedDispatcher.handle_write(self)
+         except ssl.SSLError as err:
+-            if err.errno == ssl.SSL_ERROR_WANT_WRITE:
+-                return
+-            if err.errno not in _DISCONNECTED_SSL:
+-                logger.info("SSL Error: %s", err)
+             self.close_reason = "SSL Error in handle_write"
++            if err.errno == ssl.SSL_ERROR_WANT_WRITE:
++                return 0
++            elif err.errno in _DISCONNECTED_SSL:
++                self.handle_close()
++                return 0
++            logger.info("SSL Error: %s", err)
+             self.handle_close()
++            return
+ 
+     def tls_handshake(self):
+         """Perform TLS handshake and handle its stages"""
+diff --git a/src/network/udp.py b/src/network/udp.py
+index 3f999332..7852aeea 100644
+--- a/src/network/udp.py
++++ b/src/network/udp.py
+@@ -28,6 +28,7 @@ class UDPSocket(BMProto):  # pylint: disable=too-many-instance-attributes
+         # .. todo:: sort out streams
+         self.streams = [1]
+         self.fullyEstablished = True
++        self.connectedAt = 0
+         self.skipUntil = 0
+         if sock is None:
+             if host is None:
 diff --git a/src/plugins/menu_qrcode.py b/src/plugins/menu_qrcode.py
 index ea322a49..1fbccbe4 100644
 --- a/src/plugins/menu_qrcode.py
@@ -7268,7 +7830,7 @@ index 00000000..b30fb1cc
 +sip.setapi(u'QUrl', 2)
 +sip.setapi(u'QVariant', 2)
 diff --git a/src/qidenticon.py b/src/qidenticon.py
-index 6eab09cd..b61f55ff 100644
+index 6eab09cd..412b7ead 100644
 --- a/src/qidenticon.py
 +++ b/src/qidenticon.py
 @@ -10,9 +10,7 @@ Return a PIL Image class instance which have generated identicon image.
@@ -7297,7 +7859,7 @@ index 6eab09cd..b61f55ff 100644
  
          # fill background
          backColor = QtGui.QColor(255, 255, 255, opacity)
-@@ -54,7 +54,8 @@ class IdenticonRendererBase(object):
+@@ -54,26 +54,28 @@ class IdenticonRendererBase(object):
              'backColor': backColor}
  
          # middle patch
@@ -7307,7 +7869,19 @@ index 6eab09cd..b61f55ff 100644
  
          # side patch
          kwds['foreColor'] = foreColor
-@@ -72,8 +73,9 @@ class IdenticonRendererBase(object):
+         kwds['patch_type'] = side[0]
+-        for i in xrange(4):
++        for i in range(4):
+             pos = [(1, 0), (2, 1), (1, 2), (0, 1)][i]
+             image = self.drawPatchQt(pos, side[2] + 1 + i, side[1], **kwds)
+ 
+         # corner patch
+         kwds['foreColor'] = secondColor
+         kwds['patch_type'] = corner[0]
+-        for i in xrange(4):
++        for i in range(4):
+             pos = [(0, 0), (2, 0), (2, 2), (0, 2)][i]
+             image = self.drawPatchQt(pos, corner[2] + 1 + i, corner[1], **kwds)
  
          return image
  
@@ -7382,7 +7956,7 @@ index 6eab09cd..b61f55ff 100644
          raise NotImplementedError
  
  
-@@ -166,7 +172,8 @@ class DonRenderer(IdenticonRendererBase):
+@@ -166,11 +172,12 @@ class DonRenderer(IdenticonRendererBase):
          [(0, 0), (2, 0), (0, 2)],
          # [15] empty:
          []]
@@ -7392,6 +7966,11 @@ index 6eab09cd..b61f55ff 100644
      MIDDLE_PATCH_SET = [0, 4, 8, 15]
  
      # modify path set
+-    for idx in xrange(len(PATH_SET)):
++    for idx in range(len(PATH_SET)):
+         if PATH_SET[idx]:
+             p = [(vec[0] / 4.0, vec[1] / 4.0) for vec in PATH_SET[idx]]
+             PATH_SET[idx] = p + p[:1]
 @@ -215,7 +222,8 @@ class DonRenderer(IdenticonRendererBase):
          foreColor = QtGui.QColor(*foreColor)
  
@@ -7415,17 +7994,23 @@ index 6eab09cd..b61f55ff 100644
          renderer = DonRenderer
      return renderer(code).render(size, twoColor, opacity, penwidth)
 diff --git a/src/tr.py b/src/tr.py
-index ac76ef4b..19ca4ff8 100644
+index 19dca6d4..a9de8c43 100644
 --- a/src/tr.py
 +++ b/src/tr.py
-@@ -1,56 +1,33 @@
+@@ -1,60 +1,36 @@
  """
 -Translating text
 +Slim layer providing environment agnostic _translate()
  """
 -import os
  
- import state
+-import sys
+-if sys.version_info[0] == 3:
++try:
+     from . import state
+-else:
++except ValueError:
+     import state
  
  
 -class translateClass:
@@ -7465,12 +8050,12 @@ index ac76ef4b..19ca4ff8 100644
 -        try:
 -            from PyQt4 import QtCore, QtGui
 -        except Exception as err:
--            print 'PyBitmessage requires PyQt unless you want to run it as a daemon'\
+-            print ('PyBitmessage requires PyQt unless you want to run it as a daemon'\
 -                ' and interact with it using the API.'\
 -                ' You can download PyQt from http://www.riverbankcomputing.com/software/pyqt/download'\
 -                ' or by searching Google for \'PyQt Download\'.'\
--                ' If you want to run in daemon mode, see https://bitmessage.org/wiki/Daemon'
--            print 'Error message:', err
+-                ' If you want to run in daemon mode, see https://bitmessage.org/wiki/Daemon')
+-            print('Error message:', err)
 -            os._exit(0)  # pylint: disable=protected-access
 -        if n is None:
 -            return QtGui.QApplication.translate(context, text)
