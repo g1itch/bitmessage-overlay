@@ -1,9 +1,9 @@
-# Copyright 2020 Gentoo Authors
+# Copyright 2020-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=5
-AUTOTOOLS_AUTORECONF=1
-inherit autotools-utils
+EAPI=7
+
+inherit out-of-source autotools
 
 DESCRIPTION="Vanity address generator for tor onion v3 (ed25519) hidden services"
 HOMEPAGE="https://github.com/cathugger/${PN}"
@@ -16,6 +16,10 @@ IUSE=""
 
 DEPEND="dev-libs/libsodium"
 
+src_prepare() {
+	eautoreconf
+	default
+}
 
 src_install() {
 	dobin ${BUILD_DIR}/${PN}
