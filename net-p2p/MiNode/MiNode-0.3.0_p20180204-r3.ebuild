@@ -1,12 +1,11 @@
-# Copyright 2019-2020 Gentoo Authors
+# Copyright 2019-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
-
-PYTHON_COMPAT=( python3_{5,6,7} )
+EAPI=7
+PYTHON_COMPAT=( python3_{6..9} )
 PYTHON_REQ_USE="ssl,ipv6"
 
-inherit distutils-r1 versionator
+inherit distutils-r1
 
 DESCRIPTION="Python 3 implementation of the Bitmessage protocol."
 COMMIT="f0f277f731ffe1eb2295909fac8c3593e18681c7"
@@ -28,10 +27,8 @@ RDEPEND="${DEPEND}
 
 S="${WORKDIR}"/${PN}-${COMMIT}
 
-PVM=$(get_version_component_range 1-2)
-PATCHES=(
-	"${FILESDIR}"/${PVM}-setup.patch
-)
+PVM=$(ver_cut 1-2)
+PATCHES=( "${FILESDIR}"/${PVM}-setup.patch )
 
 src_install () {
 	distutils-r1_src_install
